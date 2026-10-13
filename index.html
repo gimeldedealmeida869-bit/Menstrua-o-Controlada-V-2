@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gimisidora - Controlo de Menstruação</title>
+  <meta name="theme-color" content="#ec4899">
+  <link rel="icon" href="https://raw.githubusercontent.com/google/material-design-icons/master/png/action/favorite/materialicons/48dp/1x/baseline_favorite_black_48dp.png">
+  
+  <!-- Fontes e Bibliotecas Externa -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --primary: #e11d48;
+      --primary-light: #fda4af;
+      --primary-soft: #fff1f2;
+      --secondary: #9333ea;
+      --secondary-light: #e9d5ff;
+      --accent: #f43f5e;
+      --bg-main: #fdf2f8;
+      --card-bg: #ffffff;
+      --text-dark: #374151;
+      --text-muted: #9ca3af;
+      --border: #fbcfe8;
+      --shadow: 0 10px 25px -5px rgba(225, 29, 72, 0.08);
+      --radius: 24px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 50%, #fae8ff 100%);
+      color: var(--text-dark);
+      min-height: 100vh;
+      padding-bottom: 90px;
+    }
+
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* Cabeçalho */
+    header {
+      text-align: center;
+      padding: 15px 0 25px;
+    }
+
+    .app-logo {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 12px;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(225, 29, 72, 0.15);
+      object-fit: cover;
+      display: block;
+    }
+
+    header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2rem;
+      background: linear-gradient(135deg, #be123c, #9333ea);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 4px;
+    }
+
+    header p {
+      color: #831843;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    /* Navegação Inferior */
+    .nav-bar {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 480px;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+      display: flex;
+      justify-content: space-around;
+      padding: 12px 10px;
+      border-top: 1px solid var(--border);
+      border-radius: 24px 24px 0 0;
+      box-shadow: 0 -5px 25px rgba(0,0,0,0.05);
+      z-index: 100;
+    }
+
+    .nav-btn {
+      background: none;
+      border: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      width: 20%;
+      transition: all 0.3s ease;
+    }
+
+    .nav-btn svg {
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
+    }
+
+    .nav-btn.active {
+      color: var(--primary);
+    }
+
+    /* Cartões & Seções */
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(253, 207, 232, 0.5);
+    }
+
+    /* Anel do Ciclo (Dashboard) */
+    .cycle-ring-container {
+      position: relative;
+      width: 220px;
+      height: 220px;
+      margin: 10px auto 25px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cycle-ring-svg {
+      transform: rotate(-90deg);
+      width: 100%;
+      height: 100%;
+    }
+
+    .cycle-ring-bg {
+      fill: none;
+      stroke: var(--primary-soft);
+      stroke-width: 12;
+    }
+
+    .cycle-ring-progress {
+      fill: none;
+      stroke: url(#gradient);
+      stroke-width: 12;
+      stroke-linecap: round;
+      stroke-dasharray: 565;
+      stroke-dashoffset: 200;
+      transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .cycle-info {
+      position: absolute;
+      text-align: center;
+    }
+
+    .cycle-day-number {
+      font-size: 3rem;
+      font-weight: 800;
+      color: var(--primary);
+      line-height: 1;
+    }
+
+    .cycle-day-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    .cycle-phase-badge {
+      display: inline-block;
+      padding: 6px 14px;
+      background: var(--primary-soft);
+      color: var(--primary);
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-top: 8px;
+    }
+
+    /* Botões */
+    .btn {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(225, 29, 72, 0.25);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    /* Calendário */
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .calendar-header h3 {
+      font-size: 1.2rem;
+      color: var(--text-dark);
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      text-align: center;
+    }
+
+    .weekday {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      padding-bottom: 8px;
+    }
+
+    .day-cell {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .day-cell.period {
+      background-color: #fda4af;
+      color: #881337;
+    }
+
+    .day-cell.fertile {
+      background-color: #e9d5ff;
+      color: #581c87;
+    }
+
+    .day-cell.ovulation {
+      background-color: #c084fc;
+      color: white;
+      font-weight: 800;
+    }
+
+    .day-cell.today {
+      border: 2px solid var(--primary);
+    }
+
+    /* Diário */
+    .symptom-group {
+      margin-bottom: 20px;
+    }
+
+    .symptom-group label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: var(--text-dark);
+    }
+
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .option-btn {
+      padding: 12px 8px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: white;
+      text-align: center;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .option-btn.selected {
+      background: var(--primary-soft);
+      border-color: var(--primary);
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    textarea {
+      width: 100%;
+      height: 90px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 0.9rem;
+      outline: none;
+      resize: none;
+    }
+
+    /* Desenvolvedor & Rodapé */
+    .dev-footer {
+      text-align: center;
+      margin-top: 30px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 20px;
+      border: 1px solid var(--border);
+    }
+
+    .dev-footer h4 {
+      font-size: 0.95rem;
+      color: var(--text-dark);
+      margin-bottom: 4px;
+    }
+
+    .dev-footer p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .contact-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: #25d366;
+      color: white;
+      text-decoration: none;
+      border-radius: 30px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      box-shadow: 0 4px 12px rgba(37, 211, 102, 0.25);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Cabeçalho Principal -->
+    <header>
+      <svg class="app-logo" viewBox="0 0 100 100">
+        <rect width="100" height="100" rx="25" fill="url(#logo-grad)"/>
+        <path d="M50 25 C30 25 20 45 35 65 C45 78 50 85 50 85 C50 85 55 78 65 65 C80 45 70 25 50 25 Z" fill="#ffffff" opacity="0.9"/>
+        <text x="50" y="58" font-family="'Playfair Display', serif" font-weight="bold" font-size="28" fill="#e11d48" text-anchor="middle">G</text>
+        <defs>
+          <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#fda4af"/>
+            <stop offset="50%" stop-color="#f43f5e"/>
+            <stop offset="100%" stop-color="#9333ea"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <h1>Gimisidora</h1>
+      <p>O teu assistente de saúde e ciclo menstrual</p>
+    </header>
+
+    <!-- ABA 1: PAINEL PRINCIPAL -->
+    <div id="tab-dashboard" class="tab-content active">
+      <div class="card" style="text-align: center;">
+        <div class="cycle-ring-container">
+          <svg class="cycle-ring-svg" viewBox="0 0 200 200">
+            <defs>
+              <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#e11d48" />
+                <stop offset="100%" stop-color="#9333ea" />
+              </linearGradient>
+            </defs>
+            <circle class="cycle-ring-bg" cx="100" cy="100" r="90" />
+            <circle class="cycle-ring-progress" id="ring-progress" cx="100" cy="100" r="90" />
+          </svg>
+          <div class="cycle-info">
+            <div class="cycle-day-number" id="current-day-display">12</div>
+            <div class="cycle-day-label">Dia do Ciclo</div>
+            <div class="cycle-phase-badge" id="phase-badge">Fase Folicular</div>
+          </div>
+        </div>
+
+        <button class="btn" onclick="togglePeriodToday()">
+          <span id="period-btn-text">Registar Menstruação</span>
+        </button>
+      </div>
+
+      <div class="card">
+        <h3 style="font-size: 1.05rem; margin-bottom: 12px;">Previsões</h3>
+        <p style="font-size: 0.9rem; color: var(--text-dark); margin-bottom: 8px;">
+          🩸 Próxima menstruação: <strong id="next-period-date" style="color: var(--primary);">--/--</strong>
+        </p>
+        <p style="font-size: 0.9rem; color: var(--text-dark);">
+          🌸 Janela fértil estimada: <strong id="fertile-window-date" style="color: var(--secondary);">--/--</strong>
+        </p>
+      </div>
+    </div>
+
+    <!-- ABA 2: CALENDÁRIO -->
+    <div id="tab-calendar" class="tab-content">
+      <div class="card">
+        <div class="calendar-header">
+          <button onclick="changeMonth(-1)" style="background:none; border:none; font-size:1.2rem; cursor:pointer;">◀</button>
+          <h3 id="calendar-month-year">Outubro 2026</h3>
+          <button onclick="changeMonth(1)" style="background:none; border:none; font-size:1.2rem; cursor:pointer;">▶</button>
+        </div>
+
+        <div class="calendar-grid">
+          <div class="weekday">Dom</div>
+          <div class="weekday">Seg</div>
+          <div class="weekday">Ter</div>
+          <div class="weekday">Qua</div>
+          <div class="weekday">Qui</div>
+          <div class="weekday">Sex</div>
+          <div class="weekday">Sáb</div>
+        </div>
+        <div class="calendar-grid" id="calendar-days">
+          <!-- Gerado via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ABA 3: DIÁRIO -->
+    <div id="tab-diary" class="tab-content">
+      <div class="card">
+        <h3 style="margin-bottom: 15px;">Registo Diário</h3>
+        
+        <div class="symptom-group">
+          <label>Fluxo Menstrual</label>
+          <div class="options-grid">
+            <button class="option-btn" onclick="selectOption(this, 'flow')">Leve</button>
+            <button class="option-btn" onclick="selectOption(this, 'flow')">Moderado</button>
+            <button class="option-btn" onclick="selectOption(this, 'flow')">Intenso</button>
+          </div>
+        </div>
+
+        <div class="symptom-group">
+          <label>Sintomas</label>
+          <div class="options-grid">
+            <button class="option-btn" onclick="toggleMultiOption(this)">Cãibras</button>
+            <button class="option-btn" onclick="toggleMultiOption(this)">Dor de Cabeça</button>
+            <button class="option-btn" onclick="toggleMultiOption(this)">Acne</button>
+            <button class="option-btn" onclick="toggleMultiOption(this)">Inchaço</button>
+            <button class="option-btn" onclick="toggleMultiOption(this)">Cansaço</button>
+          </div>
+        </div>
+
+        <div class="symptom-group">
+          <label>Notas Pessoais</label>
+          <textarea id="diary-notes" placeholder="Como te sentes hoje?"></textarea>
+        </div>
+
+        <button class="btn" onclick="saveDiary()">Guardar Registo</button>
+      </div>
+    </div>
+
+    <!-- ABA 4: CONFIGURAÇÕES & CONTACTO -->
+    <div id="tab-settings" class="tab-content">
+      <div class="card">
+        <h3 style="margin-bottom: 15px;">Definições do Ciclo</h3>
+        <div style="margin-bottom: 15px;">
+          <label style="font-size: 0.85rem; font-weight:700;">Duração Média do Ciclo (dias)</label>
+          <input type="number" id="cycle-length-input" value="28" style="width:100%; padding:10px; border-radius:10px; border:1px solid var(--border); margin-top:5px;">
+        </div>
+        <div style="margin-bottom: 20px;">
+          <label style="font-size: 0.85rem; font-weight:700;">Duração da Menstruação (dias)</label>
+          <input type="number" id="period-length-input" value="5" style="width:100%; padding:10px; border-radius:10px; border:1px solid var(--border); margin-top:5px;">
+        </div>
+        <button class="btn" onclick="saveSettings()">Guardar Definições</button>
+      </div>
+
+      <!-- Créditos do Desenvolvedor -->
+      <div class="dev-footer">
+        <h4>Desenvolvido por</h4>
+        <p style="font-weight: 700; color: var(--primary);">Gimelde De Almeida</p>
+        <p>Entra em contacto para sugestões ou suporte:</p>
+        <a href="tel:+244957938675" class="contact-btn">
+          📞 957 938 675
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Navegação Inferior -->
+  <nav class="nav-bar">
+    <button class="nav-btn active" onclick="switchTab('dashboard', this)">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      Início
+    </button>
+    <button class="nav-btn" onclick="switchTab('calendar', this)">
+      <svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10z"/></svg>
+      Calendário
+    </button>
+    <button class="nav-btn" onclick="switchTab('diary', this)">
+      <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+      Diário
+    </button>
+    <button class="nav-btn" onclick="switchTab('settings', this)">
+      <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+      Ajustes
+    </button>
+  </nav>
+
+  <script>
+    // Estado da Aplicação
+    let cycleLength = 28;
+    let periodLength = 5;
+    let lastPeriodStart = new Date();
+    let currentDate = new Date();
+
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      
+      document.getElementById('tab-' + tabId).classList.add('active');
+      btn.classList.add('active');
+
+      if (tabId === 'calendar') renderCalendar();
+    }
+
+    function updateDashboard() {
+      const today = new Date();
+      const diffTime = Math.abs(today - lastPeriodStart);
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) % cycleLength + 1;
+
+      document.getElementById('current-day-display').innerText = diffDays;
+
+      // Anel de progresso
+      const progressCircle = document.getElementById('ring-progress');
+      const offset = 565 - (565 * (diffDays / cycleLength));
+      progressCircle.style.strokeDashoffset = offset;
+
+      // Fase do ciclo
+      const phaseBadge = document.getElementById('phase-badge');
+      if (diffDays <= periodLength) {
+        phaseBadge.innerText = 'Fase Menstrual';
+      } else if (diffDays <= 13) {
+        phaseBadge.innerText = 'Fase Folicular';
+      } else if (diffDays <= 16) {
+        phaseBadge.innerText = 'Fase Ovulatória';
+      } else {
+        phaseBadge.innerText = 'Fase Lútea';
+      }
+
+      // Previsão próxima menstruação
+      const nextPeriod = new Date(lastPeriodStart);
+      nextPeriod.setDate(nextPeriod.getDate() + cycleLength);
+      document.getElementById('next-period-date').innerText = nextPeriod.toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' });
+
+      // Janela fértil
+      const fertileStart = new Date(lastPeriodStart);
+      fertileStart.setDate(fertileStart.getDate() + 11);
+      const fertileEnd = new Date(lastPeriodStart);
+      fertileEnd.setDate(fertileEnd.getDate() + 16);
+      document.getElementById('fertile-window-date').innerText = `${fertileStart.getDate()} - ${fertileEnd.getDate()} de ${fertileEnd.toLocaleDateString('pt-PT', { month: 'short' })}`;
+    }
+
+    function renderCalendar() {
+      const calendarDays = document.getElementById('calendar-days');
+      calendarDays.innerHTML = '';
+
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+
+      document.getElementById('calendar-month-year').innerText = new Date(year, month).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+
+      const firstDay = new Date(year, month, 1).getDay();
+      const totalDays = new Date(year, month + 1, 0).getDate();
+
+      for (let i = 0; i < firstDay; i++) {
+        calendarDays.appendChild(document.createElement('div'));
+      }
+
+      for (let day = 1; day <= totalDays; day++) {
+        const cell = document.createElement('div');
+        cell.className = 'day-cell';
+        cell.innerText = day;
+
+        const cellDate = new Date(year, month, day);
+        const diffDays = Math.floor((cellDate - lastPeriodStart) / (1000 * 60 * 60 * 24)) % cycleLength;
+
+        if (diffDays >= 0 && diffDays < periodLength) {
+          cell.classList.add('period');
+        } else if (diffDays >= 11 && diffDays <= 15) {
+          cell.classList.add('fertile');
+          if (diffDays === 13) cell.classList.add('ovulation');
+        }
+
+        calendarDays.appendChild(cell);
+      }
+    }
+
+    function changeMonth(delta) {
+      currentDate.setMonth(currentDate.getMonth() + delta);
+      renderCalendar();
+    }
+
+    function selectOption(btn, category) {
+      btn.parentElement.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    }
+
+    function toggleMultiOption(btn) {
+      btn.classList.toggle('selected');
+    }
+
+    function saveDiary() {
+      alert('Registo diário guardado com sucesso!');
+    }
+
+    function saveSettings() {
+      cycleLength = parseInt(document.getElementById('cycle-length-input').value) || 28;
+      periodLength = parseInt(document.getElementById('period-length-input').value) || 5;
+      updateDashboard();
+      alert('Definições atualizadas!');
+    }
+
+    // Inicialização
+    lastPeriodStart.setDate(lastPeriodStart.getDate() - 11); // Exemplo: Dia 12 do ciclo
+    updateDashboard();
+  </script>
+</body>
+</html>
